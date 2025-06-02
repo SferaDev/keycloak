@@ -23,6 +23,9 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Context; // For ResourceContext
+import jakarta.ws.rs.core.UriInfo; // For RoleContainerResource
+import jakarta.ws.rs.container.ResourceContext; // For ResourceContext
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
@@ -39,6 +42,7 @@ import org.keycloak.events.admin.ResourceType;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.ModelValidationException;
 import org.keycloak.models.OrganizationModel;
+import org.keycloak.models.RealmModel; // For RoleContainerResource
 import org.keycloak.models.utils.ModelToRepresentation;
 import org.keycloak.models.utils.RepresentationToModel;
 import org.keycloak.organization.OrganizationProvider;
@@ -48,6 +52,8 @@ import org.keycloak.representations.idm.OrganizationRepresentation;
 import org.keycloak.services.ErrorResponse;
 import org.keycloak.services.resources.KeycloakOpenAPI;
 import org.keycloak.services.resources.admin.AdminEventBuilder;
+import org.keycloak.services.resources.admin.RoleContainerResource; // Added
+import org.keycloak.services.resources.admin.fgap.AdminPermissionEvaluator; // Added
 
 import java.util.Objects;
 
@@ -56,11 +62,16 @@ public class OrganizationResource {
 
     private final KeycloakSession session;
     private final OrganizationProvider provider;
+    private final AdminPermissionEvaluator auth; // Added
     private final AdminEventBuilder adminEvent;
     private final OrganizationModel organization;
 
-    public OrganizationResource(KeycloakSession session, OrganizationModel organization, AdminEventBuilder adminEvent) {
+    @Context
+    protected ResourceContext resourceContext; // For JAX-RS sub-resource management
+
+    public OrganizationResource(KeycloakSession session, AdminPermissionEvaluator auth, OrganizationModel organization, AdminEventBuilder adminEvent) {
         this.session = session;
+        this.auth = auth; // Initialize the auth field
         this.provider = session == null ? null : session.getProvider(OrganizationProvider.class);
         this.organization = organization;
         this.adminEvent = adminEvent.resource(ResourceType.ORGANIZATION);
@@ -123,11 +134,23 @@ public class OrganizationResource {
 
     @Path("members")
     public OrganizationMemberResource members() {
-        return new OrganizationMemberResource(session, organization, adminEvent);
+        return new OrganizationMemberResource(session, this.auth, organization, adminEvent);
     }
 
     @Path("identity-providers")
     public OrganizationIdentityProvidersResource identityProvider() {
         return new OrganizationIdentityProvidersResource(session, organization, adminEvent);
+    }
+
+    @Path("roles")
+    public RoleContainerResource getOrganizationRolesResource() {
+        RealmModel realm = session.getContext().getRealm();
+        // The AdminPermissionEvaluator 'auth' passed to OrganizationResource is already realm-scoped.
+        // RoleContainerResource will use this evaluator to check role-specific permissions (e.g., auth.roles().requireList(organization)).
+        RoleContainerResource resource = new RoleContainerResource(session, session.getContext().getUri(), realm, this.auth, organization, adminEvent);
+        if (resourceContext != null) {
+            resourceContext.initResource(resource);
+        }
+        return resource;
     }
 }

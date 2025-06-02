@@ -183,7 +183,7 @@ public class OrganizationsResource {
 
         session.getContext().setOrganization(organizationModel);
 
-        return new OrganizationResource(session, organizationModel, adminEvent);
+        return new OrganizationResource(session, this.auth, organizationModel, adminEvent);
     }
 
     /**

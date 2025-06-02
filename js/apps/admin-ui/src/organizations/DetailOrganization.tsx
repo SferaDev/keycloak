@@ -38,7 +38,15 @@ import {
 } from "./routes/EditOrganization";
 import { useAccess } from "../context/access/Access";
 import { AdminEvents } from "../events/AdminEvents";
-import { useState } from "react";
+import { lazy, useState } from "react"; // Added lazy
+
+// Placeholder for the new OrganizationRolesSection component
+// This will be moved to its own file later.
+const OrganizationRolesSection = lazy(
+  () => import("./OrganizationRolesSection"),
+);
+// For now, a simple placeholder if lazy loading is an issue without the file:
+// const OrganizationRolesSection = () => <div>Organization Roles Placeholder</div>;
 
 export default function DetailOrganization() {
   const { adminClient } = useAdminClient();
@@ -88,6 +96,7 @@ export default function DetailOrganization() {
   const attributesTab = useTab("attributes");
   const membersTab = useTab("members");
   const identityProvidersTab = useTab("identityProviders");
+  const rolesTab = useTab("roles"); // Added roles tab
   const eventsTab = useTab("events");
 
   const { hasAccess } = useAccess();
@@ -168,6 +177,14 @@ export default function DetailOrganization() {
             {...identityProvidersTab}
           >
             <IdentityProviders />
+          </Tab>
+          <Tab
+            id="roles"
+            data-testid="rolesTab"
+            title={<TabTitleText>{t("roles")}</TabTitleText>}
+            {...rolesTab}
+          >
+            <OrganizationRolesSection />
           </Tab>
           {realmRepresentation?.adminEventsEnabled &&
             hasAccess("view-events") && (

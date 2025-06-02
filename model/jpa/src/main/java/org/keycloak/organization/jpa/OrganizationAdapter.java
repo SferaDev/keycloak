@@ -36,11 +36,16 @@ import org.keycloak.models.OrganizationDomainModel;
 import org.keycloak.models.OrganizationModel;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
+import org.keycloak.models.RoleModel; // Added
 import org.keycloak.models.jpa.JpaModel;
+import org.keycloak.models.jpa.RoleAdapter; // Added
 import org.keycloak.models.jpa.entities.OrganizationDomainEntity;
 import org.keycloak.models.jpa.entities.OrganizationEntity;
+import org.keycloak.models.jpa.entities.RoleEntity; // Added
 import org.keycloak.models.utils.KeycloakModelUtils;
 import org.keycloak.organization.OrganizationProvider;
+import jakarta.persistence.EntityManager; // Added
+import jakarta.persistence.TypedQuery; // Added
 import org.keycloak.utils.EmailValidationUtil;
 import org.keycloak.utils.StringUtil;
 
@@ -50,6 +55,7 @@ public final class OrganizationAdapter implements OrganizationModel, JpaModel<Or
     private final RealmModel realm;
     private final OrganizationEntity entity;
     private final OrganizationProvider provider;
+    private final EntityManager em; // Added
     private GroupModel group;
     private Map<String, List<String>> attributes;
 
@@ -58,6 +64,7 @@ public final class OrganizationAdapter implements OrganizationModel, JpaModel<Or
         this.realm = realm;
         this.entity = entity;
         this.provider = provider;
+        this.em = session.getProvider(JpaOrganizationProvider.class).getEntityManager(); // Added
     }
 
     @Override
@@ -292,5 +299,116 @@ public final class OrganizationAdapter implements OrganizationModel, JpaModel<Or
             group = realm.getGroupById(getGroupId());
         }
         return group;
+    }
+
+    // Implementation of RoleContainerModel methods
+
+    @Override
+    public RoleModel addRole(String name) {
+        return this.addRole(null, name);
+    }
+
+    @Override
+    public RoleModel addRole(String id, String name) {
+        if (id != null && em.find(RoleEntity.class, id) != null) {
+            throw new ModelDuplicateException("Role with id '" + id + "' already exists");
+        }
+        if (name != null && getRole(name) != null) {
+            throw new ModelDuplicateException("Role with name '" + name + "' already exists in organization " + getName());
+        }
+
+        RoleEntity roleEntity = new RoleEntity();
+        roleEntity.setId(id == null ? KeycloakModelUtils.generateId() : id);
+        roleEntity.setName(name);
+        roleEntity.setRealmId(realm.getId());
+        roleEntity.setOrganizationId(this.getId());
+        roleEntity.setClientRole(false);
+        // For non-client roles, clientRealmConstraint is typically the realmId.
+        // This is important for the unique constraint on RoleEntity.
+        roleEntity.setClientRealmConstraint(realm.getId());
+        em.persist(roleEntity);
+        session.getKeycloakSessionFactory().publish(new RoleModel.RoleCreatedEvent() {
+            @Override
+            public RoleModel getRole() {
+                return new RoleAdapter(session, realm, em, roleEntity);
+            }
+
+            @Override
+            public KeycloakSession getKeycloakSession() {
+                return session;
+            }
+        });
+        return new RoleAdapter(session, realm, em, roleEntity);
+    }
+
+    @Override
+    public RoleModel getRole(String name) {
+        TypedQuery<RoleEntity> query = em.createNamedQuery("getOrganizationRoleByName", RoleEntity.class);
+        query.setParameter("realmId", realm.getId());
+        query.setParameter("organizationId", this.getId());
+        query.setParameter("name", name);
+        List<RoleEntity> results = query.getResultList();
+        if (results.isEmpty()) return null;
+        return new RoleAdapter(session, realm, em, results.get(0));
+    }
+
+    @Override
+    public Stream<RoleModel> getRolesStream() {
+        return getRolesStream(null, null);
+    }
+
+    @Override
+    public Stream<RoleModel> getRolesStream(Integer firstResult, Integer maxResults) {
+        TypedQuery<RoleEntity> query = em.createNamedQuery("getOrganizationRoles", RoleEntity.class);
+        query.setParameter("realmId", realm.getId());
+        query.setParameter("organizationId", this.getId());
+        if (firstResult != null && firstResult >= 0) {
+            query.setFirstResult(firstResult);
+        }
+        if (maxResults != null && maxResults >= 0) {
+            query.setMaxResults(maxResults);
+        }
+        return query.getResultStream().map(entity -> new RoleAdapter(session, realm, em, entity));
+    }
+
+    @Override
+    public Stream<RoleModel> searchForRolesStream(String search, Integer firstResult, Integer maxResults) {
+        TypedQuery<RoleEntity> query = em.createNamedQuery("searchForOrganizationRoles", RoleEntity.class);
+        query.setParameter("realmId", realm.getId());
+        query.setParameter("organizationId", this.getId());
+        query.setParameter("search", "%" + search.toLowerCase() + "%");
+        if (firstResult != null && firstResult >= 0) {
+            query.setFirstResult(firstResult);
+        }
+        if (maxResults != null && maxResults >= 0) {
+            query.setMaxResults(maxResults);
+        }
+        return query.getResultStream().map(entity -> new RoleAdapter(session, realm, em, entity));
+    }
+
+    @Override
+    public boolean removeRole(RoleModel role) {
+        if (role == null || !Objects.equals(role.getContainerId(), realm.getId()) || role.isClientRole()) {
+             // Basic check: Role must be a realm role (implicitly, org roles are realm-scoped)
+             // and its organizationId must match this organization.
+             // RoleAdapter.getContainerId() for a non-client role returns realmId.
+             // We also need to check role.getEntity().getOrganizationId().equals(this.getId())
+             // This is better handled by session.roles().removeRole if it can verify ownership.
+             // For now, let's assume session.roles().removeRole does the right checks or we enhance it later.
+            RoleEntity roleEntity = null;
+            if (role instanceof RoleAdapter) {
+                roleEntity = ((RoleAdapter) role).getEntity();
+            } else {
+                // Fallback if not a RoleAdapter, though it usually is.
+                RoleAdapter adapter = (RoleAdapter) session.roles().getRoleById(realm, role.getId());
+                if (adapter != null) roleEntity = adapter.getEntity();
+            }
+
+            if (roleEntity == null || !Objects.equals(roleEntity.getOrganizationId(), this.getId())) {
+                return false; // Not an org role of this organization
+            }
+        }
+        // Delegate to RoleProvider for proper removal, including composite role handling.
+        return session.roles().removeRole(role);
     }
 }

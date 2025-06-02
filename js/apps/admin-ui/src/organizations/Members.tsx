@@ -24,19 +24,29 @@ import { EditOrganizationParams } from "./routes/EditOrganization";
 import { CheckboxFilterComponent } from "../components/dynamic/CheckboxFilterComponent";
 import { SearchInputComponent } from "../components/dynamic/SearchInputComponent";
 import { translationFormatter } from "../utils/translationFormatter";
+import { Modal, ModalVariant } from "@patternfly/react-core"; // Added for Modal
+import OrganizationMemberRoleAssignments from "./OrganizationMemberRoleAssignments"; // Added
 
 type MembershipTypeRepresentation = UserRepresentation & {
   membershipType?: string;
 };
 
-const UserDetailLink = (user: any) => {
+// UserDetailLink will be kept for now, but direct click action might change for role management
+const UserDetailLink = (user: UserRepresentation, viewUserRoles: (user: UserRepresentation) => void) => {
   const { realm } = useRealm();
+  // This link navigates to the global user page.
+  // We might want to change the primary row click action or add a specific "Manage Roles" action.
   return (
-    <Link to={toUser({ realm, id: user.id!, tab: "settings" })}>
-      {user.username}
-    </Link>
+    <>
+      <Link to={toUser({ realm, id: user.id!, tab: "settings" })}>
+        {user.username}
+      </Link>
+      {/* Example of adding a manage roles button per row, though actions column is better */}
+      {/* <Button variant="link" onClick={() => viewUserRoles(user)}>Manage Org Roles</Button> */}
+    </>
   );
 };
+
 
 export const Members = () => {
   const { t } = useTranslation();
@@ -57,6 +67,8 @@ export const Members = () => {
     string[]
   >([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [showUserRolesModal, setShowUserRolesModal] = useState(false);
+  const [currentUserForRoles, setCurrentUserForRoles] = useState<UserRepresentation | undefined>();
 
   const membershipOptions = [
     { value: "Managed", label: "Managed" },
@@ -250,11 +262,22 @@ export const Members = () => {
               await removeMember([member]);
             },
           },
+          {
+            title: t("organizations:manageMemberRoles"), // New action
+            onRowClick: (member) => {
+              setCurrentUserForRoles(member as UserRepresentation);
+              setShowUserRolesModal(true);
+            },
+          },
         ]}
         columns={[
           {
             name: "username",
-            cellRenderer: UserDetailLink,
+            // Pass the handler to UserDetailLink, or handle click on row/action item
+            cellRenderer: (row) => UserDetailLink(row as UserRepresentation, (user) => {
+              setCurrentUserForRoles(user);
+              setShowUserRolesModal(true);
+            }),
           },
           {
             name: "email",
@@ -288,6 +311,18 @@ export const Members = () => {
         }
         isSearching={filteredMembershipTypes.length > 0}
       />
+      {showUserRolesModal && currentUserForRoles && (
+        <Modal
+          variant={ModalVariant.large}
+          title={t("organizations:manageRolesFor", { username: currentUserForRoles.username })}
+          isOpen={showUserRolesModal}
+          onClose={() => setShowUserRolesModal(false)}
+          // Actions for modal can be added here if needed, e.g., a close button
+          // For now, relying on the 'x' or escape key.
+        >
+          <OrganizationMemberRoleAssignments userId={currentUserForRoles.id!} />
+        </Modal>
+      )}
     </>
   );
 };

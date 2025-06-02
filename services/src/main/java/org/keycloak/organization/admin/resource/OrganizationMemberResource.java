@@ -54,15 +54,17 @@ import org.keycloak.models.ModelException;
 import org.keycloak.models.OrganizationModel;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
-
 import org.keycloak.models.utils.ModelToRepresentation;
 import org.keycloak.organization.OrganizationProvider;
 import org.keycloak.representations.idm.MemberRepresentation;
+import jakarta.ws.rs.container.ResourceContext; // Added
+import jakarta.ws.rs.core.Context; // Added
 import org.keycloak.representations.idm.MembershipType;
 import org.keycloak.representations.idm.OrganizationRepresentation;
 import org.keycloak.services.ErrorResponse;
 import org.keycloak.services.resources.KeycloakOpenAPI;
 import org.keycloak.services.resources.admin.AdminEventBuilder;
+import org.keycloak.services.resources.admin.fgap.AdminPermissionEvaluator; // Added
 import org.keycloak.utils.StringUtil;
 
 @Extension(name = KeycloakOpenAPI.Profiles.ADMIN, value = "")
@@ -73,13 +75,18 @@ public class OrganizationMemberResource {
     private final OrganizationProvider provider;
     private final OrganizationModel organization;
     private final AdminEventBuilder adminEvent;
+    private final AdminPermissionEvaluator auth; // Added
 
-    public OrganizationMemberResource(KeycloakSession session, OrganizationModel organization, AdminEventBuilder adminEvent) {
+    @Context
+    protected ResourceContext resourceContext; // Added
+
+    public OrganizationMemberResource(KeycloakSession session, AdminPermissionEvaluator auth, OrganizationModel organization, AdminEventBuilder adminEvent) {
         this.session = session;
         this.realm = session.getContext().getRealm();
         this.provider = session.getProvider(OrganizationProvider.class);
         this.organization = organization;
         this.adminEvent = adminEvent.resource(ResourceType.ORGANIZATION_MEMBERSHIP);
+        this.auth = auth; // Added
     }
 
     @POST
@@ -288,5 +295,15 @@ public class OrganizationMemberResource {
         MemberRepresentation result = new MemberRepresentation(ModelToRepresentation.toRepresentation(session, realm, member));
         result.setMembershipType(provider.isManagedMember(organization, member) ? MembershipType.MANAGED : MembershipType.UNMANAGED);
         return result;
+    }
+
+    @Path("{member-id}/roles")
+    public OrganizationMemberRolesResource getRolesResource(@PathParam("member-id") String memberId) {
+        UserModel user = getUser(memberId); // getUser is an existing private method in this class
+        OrganizationMemberRolesResource resource = new OrganizationMemberRolesResource(session, realm, organization, user, adminEvent, this.auth);
+        if (resourceContext != null) {
+            resourceContext.initResource(resource);
+        }
+        return resource;
     }
 }

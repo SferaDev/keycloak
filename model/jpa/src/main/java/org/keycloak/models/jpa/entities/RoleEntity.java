@@ -37,6 +37,7 @@ import jakarta.persistence.NamedQuery;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -50,21 +51,27 @@ import java.util.Set;
 //@DynamicInsert
 //@DynamicUpdate
 @Table(name="KEYCLOAK_ROLE", uniqueConstraints = {
-        @UniqueConstraint(columnNames = { "NAME", "CLIENT_REALM_CONSTRAINT" })
+        @UniqueConstraint(columnNames = { "NAME", "CLIENT_REALM_CONSTRAINT", "ORGANIZATION_ID" })
 })
 @NamedQueries({
-        @NamedQuery(name="getClientRoles", query="select role from RoleEntity role where role.clientId = :client order by role.name"),
-        @NamedQuery(name="getClientRoleIds", query="select role.id from RoleEntity role where role.clientId = :client"),
-        @NamedQuery(name="getClientRoleByName", query="select role from RoleEntity role where role.name = :name and role.clientId = :client"),
-        @NamedQuery(name="getClientRoleIdByName", query="select role.id from RoleEntity role where role.name = :name and role.clientId = :client"),
-        @NamedQuery(name="searchForClientRoles", query="select role from RoleEntity role where role.clientId = :client and ( lower(role.name) like :search or lower(role.description) like :search ) order by role.name"),
-        @NamedQuery(name="getRealmRoles", query="select role from RoleEntity role where role.clientRole = false and role.realmId = :realm order by role.name"),
-        @NamedQuery(name="getRealmRoleIds", query="select role.id from RoleEntity role where role.clientRole = false and role.realmId = :realm"),
-        @NamedQuery(name="getRealmRoleByName", query="select role from RoleEntity role where role.clientRole = false and role.name = :name and role.realmId = :realm"),
-        @NamedQuery(name="getRealmRoleIdByName", query="select role.id from RoleEntity role where role.clientRole = false and role.name = :name and role.realmId = :realm"),
-        @NamedQuery(name="searchForRealmRoles", query="select role from RoleEntity role where role.clientRole = false and role.realmId = :realm and ( lower(role.name) like :search or lower(role.description) like :search ) order by role.name"),
-        @NamedQuery(name="getRoleIdsFromIdList", query="select role.id from RoleEntity role where role.realmId = :realm and role.id in :ids order by role.name ASC"),
-        @NamedQuery(name="getRoleIdsByNameContainingFromIdList", query="select role.id from RoleEntity role where role.realmId = :realm and lower(role.name) like lower(concat('%',:search,'%')) and role.id in :ids order by role.name ASC"),
+        @NamedQuery(name="getClientRoles", query="select role from RoleEntity role where role.clientId = :client and role.organizationId IS NULL order by role.name"),
+        @NamedQuery(name="getClientRoleIds", query="select role.id from RoleEntity role where role.clientId = :client and role.organizationId IS NULL"),
+        @NamedQuery(name="getClientRoleByName", query="select role from RoleEntity role where role.name = :name and role.clientId = :client and role.organizationId IS NULL"),
+        @NamedQuery(name="getClientRoleIdByName", query="select role.id from RoleEntity role where role.name = :name and role.clientId = :client and role.organizationId IS NULL"),
+        @NamedQuery(name="searchForClientRoles", query="select role from RoleEntity role where role.clientId = :client and role.organizationId IS NULL and ( lower(role.name) like :search or lower(role.description) like :search ) order by role.name"),
+        @NamedQuery(name="getRealmRoles", query="select role from RoleEntity role where role.clientRole = false and role.organizationId IS NULL and role.realmId = :realm order by role.name"),
+        @NamedQuery(name="getRealmRoleIds", query="select role.id from RoleEntity role where role.clientRole = false and role.organizationId IS NULL and role.realmId = :realm"),
+        @NamedQuery(name="getRealmRoleByName", query="select role from RoleEntity role where role.clientRole = false and role.organizationId IS NULL and role.name = :name and role.realmId = :realm"),
+        @NamedQuery(name="getRealmRoleIdByName", query="select role.id from RoleEntity role where role.clientRole = false and role.organizationId IS NULL and role.name = :name and role.realmId = :realm"),
+        @NamedQuery(name="searchForRealmRoles", query="select role from RoleEntity role where role.clientRole = false and role.organizationId IS NULL and role.realmId = :realm and ( lower(role.name) like :search or lower(role.description) like :search ) order by role.name"),
+        @NamedQuery(name="getRoleIdsFromIdList", query="select role.id from RoleEntity role where role.realmId = :realm and role.id in :ids order by role.name ASC"), // This query might need review depending on whether IDs can be for org roles too
+        @NamedQuery(name="getRoleIdsByNameContainingFromIdList", query="select role.id from RoleEntity role where role.realmId = :realm and lower(role.name) like lower(concat('%',:search,'%')) and role.id in :ids order by role.name ASC"), // Same as above
+
+        // New queries for organization roles
+        @NamedQuery(name="getOrganizationRoles", query="select role from RoleEntity role where role.realmId = :realmId and role.organizationId = :organizationId order by role.name"),
+        @NamedQuery(name="getOrganizationRoleByName", query="select role from RoleEntity role where role.realmId = :realmId and role.organizationId = :organizationId and role.name = :name"),
+        @NamedQuery(name="getOrganizationRoleIdByName", query="select role.id from RoleEntity role where role.realmId = :realmId and role.organizationId = :organizationId and role.name = :name"),
+        @NamedQuery(name="searchForOrganizationRoles", query="select role from RoleEntity role where role.realmId = :realmId and role.organizationId = :organizationId and ( lower(role.name) like :search or lower(role.description) like :search ) order by role.name")
 })
 
 public class RoleEntity {
@@ -93,6 +100,9 @@ public class RoleEntity {
     // Hack to ensure that either name+client or name+realm are unique. Needed due to MS-SQL as it don't allow multiple NULL values in the column, which is part of constraint
     @Column(name="CLIENT_REALM_CONSTRAINT", length = 36)
     private String clientRealmConstraint;
+
+    @Column(name="ORGANIZATION_ID", length = 36)
+    private String organizationId;
 
     @ManyToMany(fetch = FetchType.LAZY, cascade = {})
     @JoinTable(name = "COMPOSITE_ROLE", joinColumns = @JoinColumn(name = "COMPOSITE"), inverseJoinColumns = @JoinColumn(name = "CHILD_ROLE"))
@@ -123,7 +133,12 @@ public class RoleEntity {
 
     public void setRealmId(String realmId) {
         this.realmId = realmId;
-        this.clientRealmConstraint = realmId;
+        // Only set clientRealmConstraint if not a client role and not an organization role.
+        // Or rather, clientRealmConstraint should always be realmId if not a client role.
+        // If it's an organization role, clientRole is false.
+        if (!this.clientRole) {
+            this.clientRealmConstraint = realmId;
+        }
     }
 
     public List<RoleAttributeEntity> getAttributes() {
@@ -189,7 +204,21 @@ public class RoleEntity {
 
     public void setClientId(String clientId) {
         this.clientId = clientId;
-        this.clientRealmConstraint = clientId;
+        if (clientId != null) {
+            this.clientRole = true; // Ensure clientRole is true if clientId is set
+            this.clientRealmConstraint = clientId;
+            this.organizationId = null; // Client roles cannot be organization roles
+        } else {
+            // If clientId is being cleared, and it's not an organization role, it becomes a realm role.
+            // If it IS an organization role, clientRole should remain false.
+            if (this.organizationId == null) {
+                 this.clientRole = false;
+                 // clientRealmConstraint should revert to realmId if this is now a pure realm role
+                 if (this.realmId != null) { // only if realmId is already set
+                    this.clientRealmConstraint = this.realmId;
+                 }
+            }
+        }
     }
 
     public String getClientRealmConstraint() {
@@ -198,6 +227,26 @@ public class RoleEntity {
 
     public void setClientRealmConstraint(String clientRealmConstraint) {
         this.clientRealmConstraint = clientRealmConstraint;
+    }
+
+    public String getOrganizationId() {
+        return organizationId;
+    }
+
+    public void setOrganizationId(String organizationId) {
+        this.organizationId = organizationId;
+        if (organizationId != null) {
+            this.clientRole = false; // Organization roles are not client roles
+            this.clientId = null;    // Ensure clientId is null
+            // For non-client roles, clientRealmConstraint is realmId
+            if (this.realmId != null) { // only if realmId is already set
+                this.clientRealmConstraint = this.realmId;
+            }
+        } else {
+            // If organizationId is being cleared, and it's not a client role, it becomes a pure realm role.
+            // clientRole remains false (unless setClientId is called later).
+            // clientRealmConstraint should already be realmId if realmId is set.
+        }
     }
 
     @Override

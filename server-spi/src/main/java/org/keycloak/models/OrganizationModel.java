@@ -24,7 +24,7 @@ import java.util.stream.Stream;
 
 import org.keycloak.provider.ProviderEvent;
 
-public interface OrganizationModel {
+public interface OrganizationModel extends RoleContainerModel {
 
     String ORGANIZATION_ATTRIBUTE = "kc.org";
     String ORGANIZATION_NAME_ATTRIBUTE = "kc.org.name";
@@ -132,4 +132,15 @@ public interface OrganizationModel {
     boolean isManaged(UserModel user);
 
     boolean isMember(UserModel user);
+
+    // Methods from RoleContainerModel to be implemented by concrete classes
+    // These are now inherited via "extends RoleContainerModel"
+
+    // RoleModel getRole(String name);
+    // RoleModel addRole(String name);
+    // RoleModel addRole(String id, String name);
+    // boolean removeRole(RoleModel role);
+    // Stream<RoleModel> getRolesStream();
+    // Stream<RoleModel> getRolesStream(Integer firstResult, Integer maxResults);
+    // Stream<RoleModel> searchForRolesStream(String search, Integer first, Integer max);
 }

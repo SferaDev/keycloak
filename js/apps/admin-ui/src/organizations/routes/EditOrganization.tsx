@@ -8,6 +8,7 @@ export type OrganizationTab =
   | "attributes"
   | "members"
   | "identityProviders"
+  | "roles" // Added new tab for organization roles
   | "events";
 
 export type EditOrganizationParams = {

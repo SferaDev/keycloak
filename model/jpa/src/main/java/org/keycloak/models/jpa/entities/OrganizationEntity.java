@@ -26,12 +26,16 @@ import jakarta.persistence.AccessType;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.NamedQueries;
 import jakarta.persistence.NamedQuery;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import org.keycloak.utils.StringUtil;
+
+import java.util.Collections; // For getter if roles is null
 
 @Table(name="ORG")
 @Entity
@@ -74,6 +78,10 @@ public class OrganizationEntity {
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy="organization")
     protected Set<OrganizationDomainEntity> domains = new HashSet<>();
+
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JoinColumn(name = "ORGANIZATION_ID", referencedColumnName = "ID")
+    protected Set<RoleEntity> roles = new HashSet<>();
 
     public String getId() {
         return id;
@@ -155,6 +163,37 @@ public class OrganizationEntity {
 
     public void removeDomain(OrganizationDomainEntity domainEntity) {
         this.domains.remove(domainEntity);
+    }
+
+    public Set<RoleEntity> getRoles() {
+        if (this.roles == null) {
+            // Should not happen if initialized, but as a safeguard
+            return Collections.emptySet();
+        }
+        return this.roles;
+    }
+
+    public void setRoles(Set<RoleEntity> roles) {
+        // Defensive copy or manage directly? Current entities often manage directly.
+        this.roles = roles;
+    }
+
+    public void addRole(RoleEntity role) {
+        if (this.roles == null) {
+            this.roles = new HashSet<>();
+        }
+        this.roles.add(role);
+        // If RoleEntity had an OrganizationEntity field, we'd set it here:
+        // role.setOrganization(this);
+        // But it only has organizationId, which is handled by @JoinColumn.
+    }
+
+    public void removeRole(RoleEntity role) {
+        if (this.roles != null) {
+            this.roles.remove(role);
+            // If RoleEntity had an OrganizationEntity field, we'd clear it:
+            // role.setOrganization(null);
+        }
     }
 
     @Override
