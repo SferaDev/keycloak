@@ -182,6 +182,10 @@ export default function NewAttributeSettings() {
       form.setValue("isRequired", required !== undefined);
       form.setValue("multivalued", multivalued === true);
       form.setValue("defaultValue", defaultValue);
+      form.setValue(
+        "userRegistrationHidden",
+        values.userRegistrationHidden === true,
+      );
     },
     [],
   );
@@ -228,6 +232,7 @@ export default function NewAttributeSettings() {
             selector: formFields.selector,
             permissions: formFields.permissions!,
             multivalued: formFields.multivalued,
+            userRegistrationHidden: formFields.userRegistrationHidden,
             annotations,
             validations,
           },
@@ -249,6 +254,7 @@ export default function NewAttributeSettings() {
             selector: formFields.selector,
             permissions: formFields.permissions!,
             multivalued: formFields.multivalued,
+            userRegistrationHidden: formFields.userRegistrationHidden,
             annotations,
             validations,
           },

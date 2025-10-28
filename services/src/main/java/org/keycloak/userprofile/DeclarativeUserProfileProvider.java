@@ -267,6 +267,10 @@ public class DeclarativeUserProfileProvider implements UserProfileProvider {
                 continue;
             }
 
+            if (UserProfileContext.REGISTRATION.equals(context) && attrConfig.isUserRegistrationHidden()) {
+                continue;
+            }
+
             List<AttributeValidatorMetadata> validators = new ArrayList<>();
             Map<String, Map<String, Object>> validationsConfig = attrConfig.getValidations();
 

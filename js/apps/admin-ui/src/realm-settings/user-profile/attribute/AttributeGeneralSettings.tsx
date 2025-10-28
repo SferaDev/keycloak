@@ -141,6 +141,11 @@ export const AttributeGeneralSettings = () => {
           label={t("multivalued")}
           labelIcon={t("multivaluedHelp")}
         />
+        <DefaultSwitchControl
+          name="userRegistrationHidden"
+          label={t("hideOnRegistrationPage")}
+          labelIcon={t("hideOnRegistrationPageHelp")}
+        />
         {!ROOT_ATTRIBUTE.includes(attributeName) && (
           <TextControl
             name="defaultValue"

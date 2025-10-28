@@ -45,6 +45,7 @@ public class UPAttribute implements Cloneable {
     private String group;
     private boolean multivalued;
     private String defaultValue;
+    private boolean userRegistrationHidden;
 
     public UPAttribute() {
     }
@@ -165,9 +166,17 @@ public class UPAttribute implements Cloneable {
         return multivalued;
     }
 
+    public boolean isUserRegistrationHidden() {
+        return userRegistrationHidden;
+    }
+
+    public void setUserRegistrationHidden(boolean userRegistrationHidden) {
+        this.userRegistrationHidden = userRegistrationHidden;
+    }
+
     @Override
     public String toString() {
-        return "UPAttribute [name=" + name + ", displayName=" + displayName + ", permissions=" + permissions + ", selector=" + selector + ", required=" + required + ", validations=" + validations + ", annotations=" + annotations + ", group=" + group + ", multivalued=" + multivalued + ", defaultValue=" + defaultValue + "]";
+        return "UPAttribute [name=" + name + ", displayName=" + displayName + ", permissions=" + permissions + ", selector=" + selector + ", required=" + required + ", validations=" + validations + ", annotations=" + annotations + ", group=" + group + ", multivalued=" + multivalued + ", defaultValue=" + defaultValue + ", userRegistrationHidden=" + userRegistrationHidden + "]";
     }
 
     @Override
@@ -194,6 +203,7 @@ public class UPAttribute implements Cloneable {
         attr.setGroup(this.group);
         attr.setMultivalued(this.multivalued);
         attr.setDefaultValue(this.defaultValue);
+        attr.setUserRegistrationHidden(this.userRegistrationHidden);
         return attr;
     }
 
