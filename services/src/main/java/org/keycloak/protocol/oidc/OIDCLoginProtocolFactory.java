@@ -342,6 +342,7 @@ public class OIDCLoginProtocolFactory extends AbstractLoginProtocolFactory {
             organizationScope.setIncludeInTokenScope(true);
             organizationScope.setProtocol(getId());
             organizationScope.addProtocolMapper(OrganizationMembershipMapper.create(ORGANIZATION, true, true, true));
+            organizationScope.setAttribute(ClientScopeModel.DEFAULT_SCOPE_VALUE, organizationScope.getName() + ClientScopeModel.VALUE_SEPARATOR + "*");
             newRealm.addDefaultClientScope(organizationScope, false);
         }
     }
