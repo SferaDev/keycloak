@@ -243,6 +243,35 @@ public class UserProfileTest extends AbstractUserProfileTest {
     }
 
     @Test
+    @ModelTest(realmName = "test")
+    public void testHideAttributeFromRegistration(KeycloakSession session) {
+        UserProfileProvider provider = getUserProfileProvider(session);
+        UPConfig config = UPConfigUtils.parseSystemDefaultConfig();
+
+        UPAttribute attribute = new UPAttribute("company", new UPAttributePermissions(Set.of(), Set.of(ROLE_USER)));
+        attribute.setDisplayName("Company");
+        attribute.setUserRegistrationHidden(true);
+
+        config.addOrReplaceAttribute(attribute);
+        provider.setConfiguration(config);
+
+        try {
+            Map<String, Object> userAttributes = new HashMap<>();
+            userAttributes.put(UserModel.USERNAME, "company-user");
+            userAttributes.put(UserModel.EMAIL, "company-user@keycloak.org");
+            userAttributes.put("company", "Keycloak");
+
+            UserProfile registrationProfile = provider.create(UserProfileContext.REGISTRATION, userAttributes);
+            assertFalse("Attribute should be hidden on registration context", registrationProfile.getAttributes().contains("company"));
+
+            UserProfile accountProfile = provider.create(UserProfileContext.ACCOUNT, userAttributes);
+            assertTrue("Attribute should remain visible in other contexts", accountProfile.getAttributes().contains("company"));
+        } finally {
+            provider.setConfiguration(parseSystemDefaultConfig());
+        }
+    }
+
+    @Test
     public void testEmptyAttributeRemoved() {
         getTestingClient().server(TEST_REALM_NAME).run((RunOnServer) UserProfileTest::testEmptyAttributeRemoved);
     }

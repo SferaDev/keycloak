@@ -89,6 +89,7 @@ export interface UserProfileAttributeMetadata {
   validators: { [index: string]: { [index: string]: any } };
   multivalued: boolean;
   defaultValue: string;
+  userRegistrationHidden?: boolean;
 }
 
 export interface UserProfileMetadata {

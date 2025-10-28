@@ -16,6 +16,7 @@ export interface UserProfileAttribute {
   group?: string;
   multivalued?: boolean;
   defaultValue?: string;
+  userRegistrationHidden?: boolean;
 }
 export interface UserProfileAttributeRequired {
   roles?: string[];
@@ -45,6 +46,7 @@ export interface UserProfileAttributeMetadata {
   validators?: Record<string, Record<string, unknown>>;
   multivalued?: boolean;
   defaultValue?: string;
+  userRegistrationHidden?: boolean;
 }
 
 export interface UserProfileAttributeGroupMetadata {
