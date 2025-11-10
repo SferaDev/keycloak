@@ -47,6 +47,7 @@ import org.keycloak.jose.jws.crypto.HashUtils;
 import org.keycloak.migration.migrators.MigrationUtils;
 import org.keycloak.models.AuthenticatedClientSessionModel;
 import org.keycloak.models.ClientModel;
+import org.keycloak.models.ClientScopeDecorator;
 import org.keycloak.models.ClientScopeModel;
 import org.keycloak.models.ClientSessionContext;
 import org.keycloak.models.Constants;
@@ -642,7 +643,7 @@ public class TokenManager {
                 Stream.of(client)).distinct();
 
         if (scopeParam == null) {
-            return clientScopes;
+            return applyDefaultScopeValues(session, clientScopes);
         }
 
         // skip organization-related scopes that were explicitly requested using the dynamic scope format
@@ -652,6 +653,8 @@ public class TokenManager {
                     || !scopeParam.contains(scope.getName() + ClientScopeModel.VALUE_SEPARATOR)
                     || scope.getProtocolMapperByType(OrganizationMembershipMapper.PROVIDER_ID).isEmpty();
         });
+
+        clientScopes = applyDefaultScopeValues(session, clientScopes);
 
         Map<String, ClientScopeModel> allOptionalScopes = client.getClientScopes(false);
 
@@ -668,6 +671,32 @@ public class TokenManager {
                         })
                         .filter(Objects::nonNull),
                 clientScopes).distinct();
+    }
+
+    private static Stream<ClientScopeModel> applyDefaultScopeValues(KeycloakSession session, Stream<ClientScopeModel> scopes) {
+        return scopes.map(scope -> decorateDefaultScope(scope, session));
+    }
+
+    private static ClientScopeModel decorateDefaultScope(ClientScopeModel scope, KeycloakSession session) {
+        if (scope instanceof ClientModel) {
+            return scope;
+        }
+
+        String defaultValue = scope.getAttribute(ClientScopeModel.DEFAULT_SCOPE_VALUE);
+
+        if (defaultValue == null || defaultValue.isBlank()) {
+            return scope;
+        }
+
+        String decoratedName = defaultValue.contains(ClientScopeModel.VALUE_SEPARATOR)
+                ? defaultValue
+                : scope.getName() + ClientScopeModel.VALUE_SEPARATOR + defaultValue;
+
+        if (decoratedName.equals(scope.getName())) {
+            return scope;
+        }
+
+        return new ClientScopeDecorator(scope, decoratedName);
     }
 
     private static ClientScopeModel tryResolveDynamicClientScope(KeycloakSession session, String scopeParam, UserModel user, String name) {

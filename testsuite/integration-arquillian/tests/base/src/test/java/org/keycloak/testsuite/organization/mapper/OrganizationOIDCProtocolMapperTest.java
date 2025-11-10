@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -235,6 +236,59 @@ public class OrganizationOIDCProtocolMapperTest extends AbstractOrganizationTest
         assertThat(organizations.contains(orgB.getAlias()), is(true));
         refreshToken = oauth.parseRefreshToken(response.getRefreshToken());
         assertThat(refreshToken.getScope(), containsString(orgScope));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testOrganizationScopeDefaultValueIncludesAllOrganizations() {
+        OrganizationRepresentation orgA = createOrganization("orga", true);
+        MemberRepresentation member = addMember(testRealm().organizations().get(orgA.getId()), "member@" + orgA.getDomains().iterator().next().getName());
+        OrganizationRepresentation orgB = createOrganization("orgb", true);
+        testRealm().organizations().get(orgB.getId()).members().addMember(member.getId()).close();
+
+        ClientScopeRepresentation orgScope = testRealm().clientScopes().findAll().stream()
+                .filter(scope -> OIDCLoginProtocolFactory.ORGANIZATION.equals(scope.getName()))
+                .findFirst()
+                .orElseThrow();
+
+        ClientScopeResource orgScopeResource = testRealm().clientScopes().get(orgScope.getId());
+        ClientScopeRepresentation scopeRep = orgScopeResource.toRepresentation();
+        Map<String, String> originalAttributes = scopeRep.getAttributes() == null ? null : new HashMap<>(scopeRep.getAttributes());
+        Map<String, String> updatedAttributes = scopeRep.getAttributes() == null ? new HashMap<>() : new HashMap<>(scopeRep.getAttributes());
+        updatedAttributes.put(ClientScopeModel.DEFAULT_SCOPE_VALUE, orgScope.getName() + ClientScopeModel.VALUE_SEPARATOR + "*");
+        scopeRep.setAttributes(updatedAttributes);
+        orgScopeResource.update(scopeRep);
+        getCleanup().addCleanup(() -> {
+            ClientScopeRepresentation reset = orgScopeResource.toRepresentation();
+            if (originalAttributes == null || originalAttributes.isEmpty()) {
+                reset.setAttributes(null);
+            } else {
+                reset.setAttributes(new HashMap<>(originalAttributes));
+            }
+            orgScopeResource.update(reset);
+        });
+
+        ClientRepresentation clientRep = testRealm().clients().findByClientId("broker-app").get(0);
+        ClientResource clientResource = testRealm().clients().get(clientRep.getId());
+        boolean scopeAssigned = clientResource.getOptionalClientScopes().stream().anyMatch(scope -> OIDCLoginProtocolFactory.ORGANIZATION.equals(scope.getName()));
+        if (!scopeAssigned) {
+            clientResource.addOptionalClientScope(orgScope.getId());
+            getCleanup().addCleanup(() -> clientResource.removeOptionalClientScope(orgScope.getId()));
+        }
+
+        oauth.client("broker-app", KcOidcBrokerConfiguration.CONSUMER_BROKER_APP_SECRET);
+        oauth.scope("openid");
+        loginPage.open(bc.consumerRealmName());
+        loginPage.loginUsername(member.getEmail());
+        loginPage.login(memberPassword);
+
+        AccessTokenResponse response = assertSuccessfulCodeGrant();
+        assertThat(response.getScope(), containsString("organization:*"));
+        AccessToken accessToken = oauth.verifyToken(response.getAccessToken());
+        assertThat(accessToken.getScope(), containsString("organization:*"));
+        assertThat(accessToken.getOtherClaims().keySet(), hasItem(OAuth2Constants.ORGANIZATION));
+        List<String> organizations = (List<String>) accessToken.getOtherClaims().get(OAuth2Constants.ORGANIZATION);
+        assertThat(organizations, hasItems(orgA.getAlias(), orgB.getAlias()));
     }
 
     @Test

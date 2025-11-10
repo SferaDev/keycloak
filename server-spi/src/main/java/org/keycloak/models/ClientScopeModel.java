@@ -33,6 +33,12 @@ public interface ClientScopeModel extends ProtocolMapperContainerModel, ScopeCon
      */
     String VALUE_SEPARATOR = ":";
 
+    /**
+     * Attribute used to define the default value that should be appended to the scope name when it is automatically
+     * requested (for instance, when configured as a default or optional client scope).
+     */
+    String DEFAULT_SCOPE_VALUE = "kc.scope.default.value";
+
     interface ClientScopeRemovedEvent extends ProviderEvent {
         ClientScopeModel getClientScope();
 
