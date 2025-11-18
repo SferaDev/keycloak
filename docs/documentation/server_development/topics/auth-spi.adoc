@@ -959,7 +959,7 @@ Rendering is done in the buildPage() method, validation is done in the validate(
                 || Stream.of(PROJECT_ID, SITE_KEY, API_KEY, ACTION)
                         .anyMatch(key -> Strings.isNullOrEmpty(config.get(key)))
                 || parseDoubleFromConfig(config, SCORE_THRESHOLD) == null) {
-            form.addError(new FormMessage(null, Messages.RECAPTCHA_NOT_CONFIGURED));
+            form.addError(new FormMessage(null, Messages.CAPTCHA_NOT_CONFIGURED));
             return;
         }
 
@@ -1006,7 +1006,7 @@ Let's look at the Recaptcha's plugin first.
             context.success();
         } else {
             List<FormMessage> errors = new ArrayList<>();
-            errors.add(new FormMessage(null, Messages.RECAPTCHA_FAILED));
+            errors.add(new FormMessage(null, Messages.CAPTCHA_FAILED));
             formData.remove(G_RECAPTCHA_RESPONSE);
             context.validationError(formData, errors);
         }

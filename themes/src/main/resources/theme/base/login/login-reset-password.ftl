@@ -1,4 +1,5 @@
 <#import "template.ftl" as layout>
+<#import "captcha.ftl" as captcha>
 <@layout.registrationLayout displayInfo=true displayMessage=!messagesPerField.existsError('username'); section>
     <#if section = "header">
         ${msg("emailForgotTitle")}
@@ -17,6 +18,9 @@
                     </#if>
                 </div>
             </div>
+
+            <@captcha.captchaWidget />
+
             <div class="${properties.kcFormGroupClass!} ${properties.kcFormSettingClass!}">
                 <div id="kc-form-options" class="${properties.kcFormOptionsClass!}">
                     <div class="${properties.kcFormOptionsWrapperClass!}">
