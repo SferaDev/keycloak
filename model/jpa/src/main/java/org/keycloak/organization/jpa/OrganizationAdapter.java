@@ -35,11 +35,17 @@ import org.keycloak.models.ModelValidationException;
 import org.keycloak.models.OrganizationDomainModel;
 import org.keycloak.models.OrganizationModel;
 import org.keycloak.models.RealmModel;
+import org.keycloak.models.RoleModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.jpa.JpaModel;
 import org.keycloak.models.jpa.entities.OrganizationDomainEntity;
 import org.keycloak.models.jpa.entities.OrganizationEntity;
+import org.keycloak.models.jpa.entities.OrganizationRoleEntity;
 import org.keycloak.models.utils.KeycloakModelUtils;
+import org.keycloak.connections.jpa.JpaConnectionProvider;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
 import org.keycloak.organization.OrganizationProvider;
 import org.keycloak.utils.EmailValidationUtil;
 import org.keycloak.utils.StringUtil;
@@ -225,6 +231,108 @@ public final class OrganizationAdapter implements OrganizationModel, JpaModel<Or
     @Override
     public boolean isMember(UserModel user) {
         return provider.isMember(this, user);
+    }
+
+    // Role Container methods
+    
+    @Override
+    public RoleModel getRole(String name) {
+        EntityManager em = session.getProvider(JpaConnectionProvider.class).getEntityManager();
+        TypedQuery<OrganizationRoleEntity> query = em.createNamedQuery("getOrganizationRoleByName", OrganizationRoleEntity.class);
+        query.setParameter("organizationId", getId());
+        query.setParameter("name", name);
+        
+        try {
+            OrganizationRoleEntity entity = query.getSingleResult();
+            return new OrganizationRoleAdapter(session, realm, this, entity);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @Override
+    public RoleModel addRole(String name) {
+        return addRole(KeycloakModelUtils.generateId(), name);
+    }
+
+    @Override
+    public RoleModel addRole(String id, String name) {
+        EntityManager em = session.getProvider(JpaConnectionProvider.class).getEntityManager();
+        
+        if (getRole(name) != null) {
+            throw new RuntimeException("Role with name '" + name + "' already exists in organization");
+        }
+        
+        OrganizationRoleEntity entity = new OrganizationRoleEntity();
+        entity.setId(id);
+        entity.setName(name);
+        entity.setOrganization(getEntity());
+        
+        em.persist(entity);
+        return new OrganizationRoleAdapter(session, realm, this, entity);
+    }
+
+    @Override
+    public boolean removeRole(RoleModel role) {
+        if (role == null || !role.getContainerId().equals(getId())) {
+            return false;
+        }
+        
+        EntityManager em = session.getProvider(JpaConnectionProvider.class).getEntityManager();
+        
+        // Remove role mappings first
+        em.createNamedQuery("deleteUserOrganizationRoleMappingsByOrganizationRole")
+          .setParameter("organizationRoleId", role.getId())
+          .executeUpdate();
+        
+        // Remove role attributes
+        em.createNamedQuery("deleteOrganizationRoleAttributes")
+          .setParameter("organizationRole", ((OrganizationRoleAdapter) role).getEntity())
+          .executeUpdate();
+        
+        // Remove the role itself
+        OrganizationRoleEntity entity = em.getReference(OrganizationRoleEntity.class, role.getId());
+        em.remove(entity);
+        
+        return true;
+    }
+
+    @Override
+    public Stream<RoleModel> getRolesStream() {
+        return getRolesStream(null, null);
+    }
+
+    @Override
+    public Stream<RoleModel> getRolesStream(Integer firstResult, Integer maxResults) {
+        EntityManager em = session.getProvider(JpaConnectionProvider.class).getEntityManager();
+        TypedQuery<OrganizationRoleEntity> query = em.createNamedQuery("getOrganizationRoles", OrganizationRoleEntity.class);
+        query.setParameter("organizationId", getId());
+        
+        if (firstResult != null && firstResult >= 0) {
+            query.setFirstResult(firstResult);
+        }
+        if (maxResults != null && maxResults >= 0) {
+            query.setMaxResults(maxResults);
+        }
+        
+        return query.getResultStream().map(entity -> new OrganizationRoleAdapter(session, realm, this, entity));
+    }
+
+    @Override
+    public Stream<RoleModel> searchForRolesStream(String search, Integer first, Integer max) {
+        EntityManager em = session.getProvider(JpaConnectionProvider.class).getEntityManager();
+        TypedQuery<OrganizationRoleEntity> query = em.createNamedQuery("searchForOrganizationRoles", OrganizationRoleEntity.class);
+        query.setParameter("organizationId", getId());
+        query.setParameter("search", "%" + (search != null ? search.toLowerCase() : "") + "%");
+        
+        if (first != null && first >= 0) {
+            query.setFirstResult(first);
+        }
+        if (max != null && max >= 0) {
+            query.setMaxResults(max);
+        }
+        
+        return query.getResultStream().map(entity -> new OrganizationRoleAdapter(session, realm, this, entity));
     }
 
     @Override

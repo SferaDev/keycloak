@@ -24,6 +24,7 @@ import org.keycloak.models.IdentityProviderModel;
 import org.keycloak.models.ModelDuplicateException;
 import org.keycloak.models.ModelException;
 import org.keycloak.models.OrganizationModel;
+import org.keycloak.models.RoleModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.provider.Provider;
 import org.keycloak.representations.idm.MembershipType;
@@ -299,4 +300,54 @@ public interface OrganizationProvider extends Provider {
     default OrganizationModel getByAlias(String alias) {
         return getAllStream(Map.of(OrganizationModel.ALIAS, alias), 0, 1).findAny().orElse(null);
     }
+
+    /**
+     * Adds an organization role to the given {@link UserModel} member of the given {@link OrganizationModel}.
+     *
+     * @param organization the organization
+     * @param user the user
+     * @param role the organization role
+     * @return {@code true} if the role was added successfully. Otherwise, returns {@code false}
+     */
+    boolean addOrganizationRoleToUser(OrganizationModel organization, UserModel user, RoleModel role);
+
+    /**
+     * Removes an organization role from the given {@link UserModel} member of the given {@link OrganizationModel}.
+     *
+     * @param organization the organization
+     * @param user the user
+     * @param role the organization role
+     * @return {@code true} if the role was removed successfully. Otherwise, returns {@code false}
+     */
+    boolean removeOrganizationRoleFromUser(OrganizationModel organization, UserModel user, RoleModel role);
+
+    /**
+     * Returns the organization roles assigned to a user in the given organization.
+     *
+     * @param organization the organization
+     * @param user the user
+     * @return Stream of organization roles. Never returns {@code null}.
+     */
+    Stream<RoleModel> getOrganizationRolesForUser(OrganizationModel organization, UserModel user);
+
+    /**
+     * Returns whether the user has the specified organization role in the given organization.
+     *
+     * @param organization the organization
+     * @param user the user
+     * @param role the organization role
+     * @return {@code true} if the user has the role. Otherwise, {@code false}
+     */
+    boolean userHasOrganizationRole(OrganizationModel organization, UserModel user, RoleModel role);
+
+    /**
+     * Returns users who have the specified organization role.
+     *
+     * @param organization the organization
+     * @param role the organization role
+     * @param firstResult the first result index
+     * @param maxResults the maximum number of results
+     * @return Stream of users. Never returns {@code null}.
+     */
+    Stream<UserModel> getUsersWithOrganizationRole(OrganizationModel organization, RoleModel role, Integer firstResult, Integer maxResults);
 }

@@ -255,6 +255,12 @@ public class OrganizationMemberResource {
                 .map(model -> ModelToRepresentation.toRepresentation(model, briefRepresentation));
     }
 
+    @Path("{member-id}/role-mappings/organization")
+    public OrganizationMemberRoleMappingResource getOrganizationRoleMappings(@PathParam("member-id") String memberId) {
+        UserModel user = getMember(memberId);
+        return new OrganizationMemberRoleMappingResource(session, organization, user, adminEvent);
+    }
+
     @Path("count")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
