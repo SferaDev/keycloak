@@ -1,4 +1,5 @@
 <#import "template.ftl" as layout>
+<#import "captcha.ftl" as captcha>
 <#import "field.ftl" as field>
 <#import "buttons.ftl" as buttons>
 <#import "social-providers.ftl" as identityProviders>
@@ -31,6 +32,8 @@
                             </#if>
                         </@field.password>
                     </#if>
+
+                    <@captcha.captchaWidget />
 
                     <input type="hidden" id="id-hidden-input" name="credentialId" <#if auth.selectedCredential?has_content>value="${auth.selectedCredential}"</#if>/>
                     <@buttons.loginButton />
