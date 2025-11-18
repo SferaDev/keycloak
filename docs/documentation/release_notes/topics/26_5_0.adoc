@@ -39,3 +39,11 @@ This provides a more fine-grained way to manage features and eliminates the need
 The `feature-<name>` option takes precedence over both `features` and `features-disabled`.
 
 For more details, see the https://www.keycloak.org/server/features[Enabling and disabling features] guide.
+
+= Cloudflare Turnstile CAPTCHA support
+
+Keycloak now includes native support for Cloudflare Turnstile as a CAPTCHA provider, offering a privacy-friendly alternative to reCAPTCHA.
+
+Turnstile can be configured to protect registration forms, login flows, and password reset pages. It supports customizable themes (auto, light, dark) and widget sizes (normal, flexible, compact), and provides a frictionless user experience.
+
+For more details, see the link:{adminguide_link}#proc-enabling-turnstile_{context}[Server Administration Guide].
