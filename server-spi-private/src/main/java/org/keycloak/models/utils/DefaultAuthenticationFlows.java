@@ -134,7 +134,7 @@ public class DefaultAuthenticationFlows {
         execution = new AuthenticationExecutionModel();
         execution.setParentFlow(registrationFormFlow.getId());
         execution.setRequirement(AuthenticationExecutionModel.Requirement.DISABLED);
-        execution.setAuthenticator("registration-recaptcha-action");
+        execution.setAuthenticator("registration-captcha-action");
         execution.setPriority(60);
         execution.setAuthenticatorFlow(false);
         //execution.setAuthenticatorConfig(captchaConfig.getId());

@@ -1,6 +1,7 @@
 <#import "template.ftl" as layout>
 <#import "user-profile-commons.ftl" as userProfileCommons>
 <#import "register-commons.ftl" as registerCommons>
+<#import "captcha.ftl" as captcha>
 <@layout.registrationLayout displayMessage=messagesPerField.exists('global') displayRequiredFields=true; section>
     <#if section = "header">
         <#if messageHeader??>
@@ -73,13 +74,7 @@
 
             <@registerCommons.termsAcceptance/>
 
-            <#if recaptchaRequired?? && (recaptchaVisible!false)>
-                <div class="form-group">
-                    <div class="${properties.kcInputWrapperClass!}">
-                        <div class="g-recaptcha" data-size="compact" data-sitekey="${recaptchaSiteKey}" data-action="${recaptchaAction}"></div>
-                    </div>
-                </div>
-            </#if>
+            <@captcha.captchaWidget />
 
             <div class="${properties.kcFormGroupClass!}">
                 <div id="kc-form-options" class="${properties.kcFormOptionsClass!}">
