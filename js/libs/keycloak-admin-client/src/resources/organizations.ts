@@ -1,6 +1,7 @@
 import type { KeycloakAdminClient } from "../client.js";
 import IdentityProviderRepresentation from "../defs/identityProviderRepresentation.js";
 import type OrganizationRepresentation from "../defs/organizationRepresentation.js";
+import RoleRepresentation from "../defs/roleRepresentation.js";
 import UserRepresentation from "../defs/userRepresentation.js";
 import Resource from "./resource.js";
 
@@ -20,6 +21,7 @@ interface MemberQuery extends PaginatedQuery {
 }
 
 export class Organizations extends Resource<{ realm?: string }> {
+  public roles: OrganizationRoles;
   /**
    * Organizations
    */
@@ -32,6 +34,8 @@ export class Organizations extends Resource<{ realm?: string }> {
       }),
       getBaseUrl: () => client.baseUrl,
     });
+
+    this.roles = new OrganizationRoles(client);
   }
 
   public find = this.makeRequest<
@@ -143,4 +147,63 @@ export class Organizations extends Resource<{ realm?: string }> {
       urlParamKeys: ["orgId", "alias"],
     },
   );
+}
+
+export class OrganizationRoles extends Resource<{ realm?: string }> {
+  constructor(client: KeycloakAdminClient) {
+    super(client, {
+      path: "/admin/realms/{realm}/organizations/{id}/roles",
+      getUrlParams: () => ({
+        realm: client.realmName,
+      }),
+      getBaseUrl: () => client.baseUrl,
+    });
+  }
+
+  public find = this.makeRequest<
+    { id: string } & PaginatedQuery,
+    RoleRepresentation[]
+  >({
+    method: "GET",
+    path: "/",
+    urlParamKeys: ["id"],
+  });
+
+  public findOne = this.makeRequest<
+    { id: string; roleName: string },
+    RoleRepresentation
+  >({
+    method: "GET",
+    path: "/{roleName}",
+    urlParamKeys: ["id", "roleName"],
+  });
+
+  public create = this.makeRequest<
+    { id: string },
+    RoleRepresentation,
+    void
+  >({
+    method: "POST",
+    path: "/",
+    urlParamKeys: ["id"],
+  });
+
+  public updateByName = this.makeUpdateRequest<
+    { id: string; roleName: string },
+    RoleRepresentation,
+    void
+  >({
+    method: "PUT",
+    path: "/{roleName}",
+    urlParamKeys: ["id", "roleName"],
+  });
+
+  public delByName = this.makeRequest<
+    { id: string; roleName: string },
+    void
+  >({
+    method: "DELETE",
+    path: "/{roleName}",
+    urlParamKeys: ["id", "roleName"],
+  });
 }

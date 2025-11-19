@@ -24,7 +24,7 @@ import java.util.stream.Stream;
 
 import org.keycloak.provider.ProviderEvent;
 
-public interface OrganizationModel {
+public interface OrganizationModel extends RoleContainerModel {
 
     String ORGANIZATION_ATTRIBUTE = "kc.org";
     String ORGANIZATION_NAME_ATTRIBUTE = "kc.org.name";
