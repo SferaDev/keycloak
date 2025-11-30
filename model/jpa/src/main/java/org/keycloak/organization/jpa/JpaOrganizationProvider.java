@@ -49,12 +49,15 @@ import org.keycloak.models.ModelException;
 import org.keycloak.models.ModelValidationException;
 import org.keycloak.models.OrganizationModel;
 import org.keycloak.models.RealmModel;
+import org.keycloak.models.RoleModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.UserProvider;
 import org.keycloak.models.jpa.entities.GroupAttributeEntity;
 import org.keycloak.models.jpa.entities.GroupEntity;
 import org.keycloak.models.jpa.entities.OrganizationDomainEntity;
 import org.keycloak.models.jpa.entities.OrganizationEntity;
+import org.keycloak.models.jpa.entities.OrganizationRoleEntity;
+import org.keycloak.models.jpa.entities.OrganizationRoleMappingEntity;
 import org.keycloak.models.jpa.entities.UserEntity;
 import org.keycloak.models.jpa.entities.UserGroupMembershipEntity;
 import org.keycloak.models.utils.KeycloakModelUtils;
@@ -684,5 +687,103 @@ public class JpaOrganizationProvider implements OrganizationProvider {
             throw new IllegalArgumentException("Session not bound to a realm");
         }
         return realm;
+    }
+
+    @Override
+    public boolean addOrganizationRoleToUser(OrganizationModel organization, UserModel user, RoleModel role) {
+        if (!isMember(organization, user)) {
+            return false;
+        }
+        
+        if (!role.getContainerId().equals(organization.getId())) {
+            return false;
+        }
+        
+        if (userHasOrganizationRole(organization, user, role)) {
+            return true; // User already has this role
+        }
+        
+        OrganizationRoleMappingEntity mapping = new OrganizationRoleMappingEntity();
+        mapping.setUser(em.getReference(UserEntity.class, user.getId()));
+        mapping.setOrganizationRoleId(role.getId());
+        
+        em.persist(mapping);
+        return true;
+    }
+
+    @Override
+    public boolean removeOrganizationRoleFromUser(OrganizationModel organization, UserModel user, RoleModel role) {
+        if (!isMember(organization, user)) {
+            return false;
+        }
+        
+        if (!role.getContainerId().equals(organization.getId())) {
+            return false;
+        }
+        
+        return em.createNamedQuery("deleteUserOrganizationRoleMappingsByOrganizationRole")
+            .setParameter("organizationRoleId", role.getId())
+            .executeUpdate() > 0;
+    }
+
+    @Override
+    public Stream<RoleModel> getOrganizationRolesForUser(OrganizationModel organization, UserModel user) {
+        if (!isMember(organization, user)) {
+            return Stream.empty();
+        }
+        
+        UserEntity userEntity = em.getReference(UserEntity.class, user.getId());
+        
+        TypedQuery<OrganizationRoleEntity> query = em.createQuery(
+            "select r from OrganizationRoleEntity r, OrganizationRoleMappingEntity m " +
+            "where m.organizationRoleId = r.id and m.user = :user and r.organization.id = :organizationId",
+            OrganizationRoleEntity.class);
+        query.setParameter("user", userEntity);
+        query.setParameter("organizationId", organization.getId());
+        
+        return query.getResultStream().map(entity -> 
+            new OrganizationRoleAdapter(session, getRealm(), organization, entity));
+    }
+
+    @Override
+    public boolean userHasOrganizationRole(OrganizationModel organization, UserModel user, RoleModel role) {
+        if (!isMember(organization, user)) {
+            return false;
+        }
+        
+        if (!role.getContainerId().equals(organization.getId())) {
+            return false;
+        }
+        
+        UserEntity userEntity = em.getReference(UserEntity.class, user.getId());
+        
+        TypedQuery<OrganizationRoleMappingEntity> query = em.createNamedQuery("userHasOrganizationRole", OrganizationRoleMappingEntity.class);
+        query.setParameter("user", userEntity);
+        query.setParameter("organizationRoleId", role.getId());
+        
+        return !query.getResultList().isEmpty();
+    }
+
+    @Override
+    public Stream<UserModel> getUsersWithOrganizationRole(OrganizationModel organization, RoleModel role, Integer firstResult, Integer maxResults) {
+        if (!role.getContainerId().equals(organization.getId())) {
+            return Stream.empty();
+        }
+        
+        TypedQuery<UserEntity> query = em.createQuery(
+            "select u from UserEntity u, OrganizationRoleMappingEntity m " +
+            "where m.user = u and m.organizationRoleId = :organizationRoleId " +
+            "order by u.username",
+            UserEntity.class);
+        query.setParameter("organizationRoleId", role.getId());
+        
+        if (firstResult != null && firstResult >= 0) {
+            query.setFirstResult(firstResult);
+        }
+        if (maxResults != null && maxResults >= 0) {
+            query.setMaxResults(maxResults);
+        }
+        
+        return query.getResultStream().map(entity -> userProvider.getUserById(getRealm(), entity.getId()));
     }
 }
