@@ -1,4 +1,5 @@
 <#import "template.ftl" as layout>
+<#import "captcha.ftl" as captcha>
 <#import "field.ftl" as field>
 <#import "user-profile-commons.ftl" as userProfileCommons>
 <#import "register-commons.ftl" as registerCommons>
@@ -26,31 +27,11 @@
 
             <@registerCommons.termsAcceptance/>
 
-            <#if recaptchaRequired?? && (recaptchaVisible!false)>
-                <div class="form-group">
-                    <div class="${properties.kcInputWrapperClass!}">
-                        <div class="g-recaptcha" data-size="compact" data-sitekey="${recaptchaSiteKey}" data-action="${recaptchaAction}"></div>
-                    </div>
-                </div>
-            </#if>
+            <@captcha.captchaWidget />
 
-            <#if recaptchaRequired?? && !(recaptchaVisible!false)>
-                <script>
-                    function onSubmitRecaptcha(token) {
-                        document.getElementById("kc-register-form").requestSubmit();
-                    }
-                </script>
-                <div id="kc-form-buttons" class="${properties.kcFormButtonsClass!}">
-                    <button class="${properties.kcButtonClass!} ${properties.kcButtonPrimaryClass!} ${properties.kcButtonBlockClass!} ${properties.kcButtonLargeClass!} g-recaptcha"
-                            data-sitekey="${recaptchaSiteKey}" data-callback="onSubmitRecaptcha" data-action="${recaptchaAction}" type="submit" id="kc-submit">
-                        ${msg("doRegister")}
-                    </button>
-                </div>
-            <#else>
-                <div id="kc-form-buttons" class="${properties.kcFormButtonsClass!}">
-                    <input class="${properties.kcButtonClass!} ${properties.kcButtonPrimaryClass!} ${properties.kcButtonBlockClass!} ${properties.kcButtonLargeClass!}" type="submit" value="${msg("doRegister")}"/>
-                </div>
-            </#if>
+            <div id="kc-form-buttons" class="${properties.kcFormButtonsClass!}">
+                <@captcha.captchaSubmitButton formId="kc-register-form" label=msg("doRegister") />
+            </div>
 
             <div class="${properties.kcFormGroupClass!} pf-v5-c-login__main-footer-band">
                 <div id="kc-form-options" class="${properties.kcFormOptionsClass!} pf-v5-c-login__main-footer-band-item">

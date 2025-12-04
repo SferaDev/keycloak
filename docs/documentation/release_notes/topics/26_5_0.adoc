@@ -64,3 +64,13 @@ The invitation management features are available in the *Invitations* tab when m
 = Logout confirmation
 
 The client logout configuration page now includes an option to enable logout confirmation. When enabled, users will see "You are logged out" confirmation page upon successful logout.
+
+= Unified CAPTCHA abstraction with Cloudflare Turnstile support
+
+{project_name} now provides a unified CAPTCHA abstraction that supports multiple CAPTCHA providers including Google reCAPTCHA v2/v3, Google reCAPTCHA Enterprise, and Cloudflare Turnstile.
+
+The new unified CAPTCHA authenticators allow you to select and configure any supported CAPTCHA provider from a single interface, making it easier to switch between providers or test different solutions.
+
+*Automatic Migration:* Existing authentication flows using the legacy reCAPTCHA authenticators will be automatically migrated to the new unified CAPTCHA system on server startup. Your existing configurations will be preserved, and no manual intervention is required.
+
+For more details on configuring CAPTCHA providers, see the link:{adminguide_link}#proc-enabling-turnstile_server_administration_guide[{adminguide_name}].

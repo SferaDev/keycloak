@@ -1,5 +1,5 @@
 #
-# Copyright 2016 Red Hat, Inc. and/or its affiliates
+# Copyright 2025 Red Hat, Inc. and/or its affiliates
 # and other contributors as indicated by the @author tags.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-org.keycloak.authentication.forms.RegistrationPassword
-org.keycloak.authentication.forms.RegistrationUserCreation
-org.keycloak.authentication.forms.RegistrationCaptcha
-org.keycloak.authentication.forms.RegistrationTermsAndConditions
+org.keycloak.captcha.RecaptchaProviderFactory
+org.keycloak.captcha.RecaptchaEnterpriseProviderFactory
+org.keycloak.captcha.TurnstileProviderFactory

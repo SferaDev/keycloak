@@ -90,8 +90,8 @@ public class Messages {
     public static final String INVALID_TOTP = "invalidTotpMessage";
 
     public static final String USERNAME_EXISTS = "usernameExistsMessage";
-    public static final String RECAPTCHA_FAILED = "recaptchaFailed";
-    public static final String RECAPTCHA_NOT_CONFIGURED = "recaptchaNotConfigured";
+    public static final String CAPTCHA_FAILED = "captchaFailed";
+    public static final String CAPTCHA_NOT_CONFIGURED = "captchaNotConfigured";
 
     public static final String EMAIL_EXISTS = "emailExistsMessage";
     public static final String EMAIL_VERIFICATION_PENDING = "emailVerificationPending";

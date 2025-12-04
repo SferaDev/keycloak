@@ -1,5 +1,6 @@
 <#import "template.ftl" as layout>
 <#import "passkeys.ftl" as passkeys>
+<#import "captcha.ftl" as captcha>
 <@layout.registrationLayout displayMessage=!messagesPerField.existsError('username','password') displayInfo=realm.password && realm.registrationAllowed && !registrationDisabled??; section>
     <#if section = "header">
         ${msg("loginAccountTitle")}
@@ -72,9 +73,11 @@
 
                       </div>
 
+                      <@captcha.captchaWidget />
+
                       <div id="kc-form-buttons" class="${properties.kcFormGroupClass!}">
                           <input type="hidden" id="id-hidden-input" name="credentialId" <#if auth.selectedCredential?has_content>value="${auth.selectedCredential}"</#if>/>
-                          <input tabindex="7" class="${properties.kcButtonClass!} ${properties.kcButtonPrimaryClass!} ${properties.kcButtonBlockClass!} ${properties.kcButtonLargeClass!}" name="login" id="kc-login" type="submit" value="${msg("doLogIn")}"/>
+                          <@captcha.captchaSubmitButton formId="kc-form-login" label=msg("doLogIn") id="kc-login" name="login" />
                       </div>
                 </form>
             </#if>
