@@ -16,6 +16,8 @@
  */
 package org.keycloak.models;
 
+import java.util.List;
+
 import org.keycloak.common.util.Time;
 
 /**
@@ -128,6 +130,20 @@ public interface OrganizationInvitationModel {
      * @param inviteLink the invitation link
      */
     void setInviteLink(String inviteLink);
+
+    /**
+     * Returns the group IDs to assign when the invitation is accepted.
+     *
+     * @return the list of group IDs, or null if none
+     */
+    List<String> getGroupIds();
+
+    /**
+     * Sets the group IDs to assign when the invitation is accepted.
+     *
+     * @param groupIds the list of group IDs
+     */
+    void setGroupIds(List<String> groupIds);
 
     /**
      * Returns the current status of this invitation.

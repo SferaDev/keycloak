@@ -363,6 +363,8 @@ public class RegistrationUserCreation implements FormAction, FormActionFactory {
                 OrganizationProvider provider = session.getProvider(OrganizationProvider.class);
                 OrganizationModel orgModel = provider.getById(token.getOrgId());
                 provider.addManagedMember(orgModel, user);
+                Organizations.assignInvitationGroups(context.getRealm(), user, token);
+                context.getEvent().detail(Details.ORG_ID, orgModel.getId());
                 context.getAuthenticationSession().setRedirectUri(token.getRedirectUri());
 
                 // Delete the invitation since it has been used

@@ -42,6 +42,7 @@ import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.organization.InvitationManager;
 import org.keycloak.organization.OrganizationProvider;
+import org.keycloak.organization.utils.Organizations;
 import org.keycloak.protocol.oidc.OIDCLoginProtocol;
 import org.keycloak.services.Urls;
 import org.keycloak.services.managers.AuthenticationManager;
@@ -151,6 +152,8 @@ public class InviteOrgActionTokenHandler extends AbstractActionTokenHandler<Invi
 
         // if we made it this far then go ahead and add the user to the organization
         orgProvider.addMember(orgProvider.getById(token.getOrgId()), user);
+
+        Organizations.assignInvitationGroups(realm, user, token);
 
         // Delete the invitation since it has been used
         invitationManager.remove(token.getId());
