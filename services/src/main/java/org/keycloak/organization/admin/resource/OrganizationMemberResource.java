@@ -18,6 +18,7 @@
 package org.keycloak.organization.admin.resource;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -141,8 +142,9 @@ public class OrganizationMemberResource {
     })
     public Response inviteUser(@FormParam("email") String email,
                                @FormParam("firstName") String firstName,
-                               @FormParam("lastName") String lastName) {
-        return new OrganizationInvitationResource(session, organization, adminEvent, auth).inviteUser(email, firstName, lastName);
+                               @FormParam("lastName") String lastName,
+                               @FormParam("groups") List<String> groups) {
+        return new OrganizationInvitationResource(session, organization, adminEvent, auth).inviteUser(email, firstName, lastName, groups);
     }
 
     @POST
@@ -156,8 +158,9 @@ public class OrganizationMemberResource {
         @APIResponse(responseCode = "403", description = "Forbidden"),
         @APIResponse(responseCode = "500", description = "Internal Server Error")
     })
-    public Response inviteExistingUser(@FormParam("id") String id) {
-        return new OrganizationInvitationResource(session, organization, adminEvent, auth).inviteExistingUser(id);
+    public Response inviteExistingUser(@FormParam("id") String id,
+                                       @FormParam("groups") List<String> groups) {
+        return new OrganizationInvitationResource(session, organization, adminEvent, auth).inviteExistingUser(id, groups);
     }
 
     @GET

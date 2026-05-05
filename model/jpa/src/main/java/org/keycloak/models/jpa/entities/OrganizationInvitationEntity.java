@@ -16,6 +16,10 @@
  */
 package org.keycloak.models.jpa.entities;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -60,6 +64,9 @@ public class OrganizationInvitationEntity implements OrganizationInvitationModel
 
     @Column(name = "INVITE_LINK", length = 2048)
     private String inviteLink;
+
+    @Column(name = "GROUP_IDS", length = 2048)
+    private String groupIds;
 
     public OrganizationInvitationEntity() {
     }
@@ -149,6 +156,22 @@ public class OrganizationInvitationEntity implements OrganizationInvitationModel
     @Override
     public void setInviteLink(String inviteLink) {
         this.inviteLink = inviteLink;
+    }
+
+    @Override
+    public List<String> getGroupIds() {
+        if (groupIds == null || groupIds.isEmpty()) {
+            return null;
+        }
+        List<String> ids = Arrays.stream(groupIds.split(","))
+                .filter(s -> !s.isBlank())
+                .collect(Collectors.toList());
+        return ids.isEmpty() ? null : ids;
+    }
+
+    @Override
+    public void setGroupIds(List<String> groupIds) {
+        this.groupIds = (groupIds == null || groupIds.isEmpty()) ? null : String.join(",", groupIds);
     }
 
     @Override

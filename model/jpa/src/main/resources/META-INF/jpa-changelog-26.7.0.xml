@@ -45,4 +45,10 @@
         </delete>
     </changeSet>
 
+    <changeSet author="keycloak" id="26.7.0-org-invitation-group-ids">
+        <addColumn tableName="ORG_INVITATION">
+            <column name="GROUP_IDS" type="VARCHAR(2048)"/>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

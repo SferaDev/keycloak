@@ -17,6 +17,7 @@
 package org.keycloak.organization.admin.resource;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -42,6 +43,7 @@ import org.keycloak.events.admin.OperationType;
 import org.keycloak.events.admin.ResourceType;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.Constants;
+import org.keycloak.models.GroupModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.OrganizationInvitationModel;
 import org.keycloak.models.OrganizationInvitationModel.Filter;
@@ -97,7 +99,7 @@ public class OrganizationInvitationResource {
         this.auth = auth;
     }
 
-    public Response inviteUser(String email, String firstName, String lastName) {
+    public Response inviteUser(String email, String firstName, String lastName, List<String> groupIds) {
         auth.orgs().requireManage(organization);
 
         if (!organization.isEnabled()) {
@@ -112,6 +114,8 @@ public class OrganizationInvitationResource {
         if (!Validation.isEmailValid(email)) {
             throw ErrorResponse.error("Invalid email format", Status.BAD_REQUEST);
         }
+
+        List<String> validatedGroupIds = validateGroupIds(groupIds);
 
         OrganizationProvider invitationProvider = session.getProvider(OrganizationProvider.class);
         InvitationManager invitationManager = invitationProvider.getInvitationManager();
@@ -132,7 +136,7 @@ public class OrganizationInvitationResource {
                 throw ErrorResponse.error("User already a member of the organization", Status.CONFLICT);
             }
 
-            return sendInvitation(user);
+            return sendInvitation(user, validatedGroupIds);
         }
 
         // Create temporary user for new registrations
@@ -144,10 +148,10 @@ public class OrganizationInvitationResource {
             user.setLastName(lastName);
         }
 
-        return sendInvitation(user);
+        return sendInvitation(user, validatedGroupIds);
     }
 
-    public Response inviteExistingUser(String id) {
+    public Response inviteExistingUser(String id, List<String> groupIds) {
         auth.orgs().requireManage(organization);
 
         if (!organization.isEnabled()) {
@@ -170,10 +174,12 @@ public class OrganizationInvitationResource {
             throw ErrorResponse.error("User does not have an email address", Status.BAD_REQUEST);
         }
 
-        return sendInvitation(user);
+        List<String> validatedGroupIds = validateGroupIds(groupIds);
+
+        return sendInvitation(user, validatedGroupIds);
     }
 
-    private Response sendInvitation(UserModel user) {
+    private Response sendInvitation(UserModel user, List<String> groupIds) {
         OrganizationProvider provider = session.getProvider(OrganizationProvider.class);
         InvitationManager invitationManager = provider.getInvitationManager();
         // Create persistent invitation record
@@ -183,6 +189,7 @@ public class OrganizationInvitationResource {
             user.getFirstName(),
             user.getLastName()
         );
+        invitation.setGroupIds(groupIds);
 
         String link = user.getId() == null ?
             createRegistrationLink(user, invitation) :
@@ -227,6 +234,7 @@ public class OrganizationInvitationResource {
 
         token.setOrgId(organization.getId());
         token.id(invitation.getId());
+        token.setGroupIds(invitation.getGroupIds());
 
         if (organization.getRedirectUrl() == null || organization.getRedirectUrl().isBlank()) {
             token.setRedirectUri(resolveAccountClientBaseUrl());
@@ -235,6 +243,26 @@ public class OrganizationInvitationResource {
         }
 
         return token.serialize(session, realm, session.getContext().getUri());
+    }
+
+    private static final int MAX_INVITATION_GROUPS = 50;
+
+    private List<String> validateGroupIds(List<String> groupIds) {
+        if (groupIds == null || groupIds.isEmpty()) {
+            return null;
+        }
+        if (groupIds.size() > MAX_INVITATION_GROUPS) {
+            throw ErrorResponse.error("Too many groups specified (max " + MAX_INVITATION_GROUPS + ")", Status.BAD_REQUEST);
+        }
+        for (String groupId : groupIds) {
+            GroupModel group = realm.getGroupById(groupId);
+            if (group == null || group.getType() != GroupModel.Type.ORGANIZATION
+                    || group.getOrganization() == null
+                    || !group.getOrganization().getId().equals(organization.getId())) {
+                throw ErrorResponse.error("Invalid organization group: " + groupId, Status.BAD_REQUEST);
+            }
+        }
+        return groupIds;
     }
 
     private String resolveAccountClientBaseUrl() {
@@ -350,8 +378,9 @@ public class OrganizationInvitationResource {
         InvitationManager invitationManager = provider.getInvitationManager();
 
         OrganizationInvitationModel invitation = verifyInvitationById(invitationManager, id);
+        List<String> validatedGroupIds = validateGroupIds(invitation.getGroupIds());
         invitationManager.remove(id);
-        return inviteUser(invitation.getEmail(), invitation.getFirstName(), invitation.getLastName());
+        return inviteUser(invitation.getEmail(), invitation.getFirstName(), invitation.getLastName(), validatedGroupIds);
     }
 
     private OrganizationInvitationModel verifyInvitationById(InvitationManager invitationManager, String id) {
@@ -377,6 +406,7 @@ public class OrganizationInvitationResource {
         rep.setSentDate(model.getCreatedAt());
         rep.setExpiresAt(model.getExpiresAt());
         rep.setInviteLink(model.getInviteLink());
+        rep.setGroupIds(model.getGroupIds());
 
         OrganizationInvitationRepresentation.Status dynamicStatus = model.isExpired() ?
                 EXPIRED :

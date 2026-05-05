@@ -16,8 +16,11 @@
  */
 package org.keycloak.authentication.actiontoken.inviteorg;
 
+import java.util.List;
+
 import org.keycloak.authentication.actiontoken.DefaultActionToken;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -31,13 +34,17 @@ public class InviteOrgActionToken extends DefaultActionToken {
 
     private static final String JSON_FIELD_REDIRECT_URI = "reduri";
     private static final String JSON_ORG_ID = "org_id";
+    private static final String JSON_FIELD_GROUP_IDS = "grpids";
 
     @JsonProperty(JSON_FIELD_REDIRECT_URI)
     private String redirectUri;
 
-
     @JsonProperty(JSON_ORG_ID)
     private String orgId;
+
+    @JsonProperty(JSON_FIELD_GROUP_IDS)
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    private List<String> groupIds;
 
     public InviteOrgActionToken(String userId, int absoluteExpirationInSecs, String email, String clientId) {
         super(userId, TOKEN_TYPE, absoluteExpirationInSecs, null);
@@ -62,5 +69,13 @@ public class InviteOrgActionToken extends DefaultActionToken {
 
     public void setOrgId(String orgId) {
         this.orgId = orgId;
+    }
+
+    public List<String> getGroupIds() {
+        return groupIds;
+    }
+
+    public void setGroupIds(List<String> groupIds) {
+        this.groupIds = groupIds;
     }
 }

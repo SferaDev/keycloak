@@ -124,10 +124,36 @@ public interface OrganizationMembersResource {
                         @FormParam("firstName") String firstName,
                         @FormParam("lastName") String lastName);
 
+    /**
+     * Invites an existing user or sends a registration link, with optional organization group assignment.
+     *
+     * @param groups organization group IDs to assign when the invitation is accepted
+     * @since Keycloak server 26.7
+     */
+    @POST
+    @Path("invite-user")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    Response inviteUser(@FormParam("email") String email,
+                        @FormParam("firstName") String firstName,
+                        @FormParam("lastName") String lastName,
+                        @FormParam("groups") List<String> groups);
+
     @POST
     @Path("invite-existing-user")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     Response inviteExistingUser(@FormParam("id") String id);
+
+    /**
+     * Invites an existing user to the organization, with optional organization group assignment.
+     *
+     * @param groups organization group IDs to assign when the invitation is accepted
+     * @since Keycloak server 26.7
+     */
+    @POST
+    @Path("invite-existing-user")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    Response inviteExistingUser(@FormParam("id") String id,
+                                @FormParam("groups") List<String> groups);
 
     /**
      * @since Keycloak server 26

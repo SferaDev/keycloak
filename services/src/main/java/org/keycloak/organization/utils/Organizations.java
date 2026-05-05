@@ -28,6 +28,7 @@ import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 
+import org.jboss.logging.Logger;
 import org.keycloak.TokenVerifier;
 import org.keycloak.authentication.actiontoken.inviteorg.InviteOrgActionToken;
 import org.keycloak.common.Profile;
@@ -58,6 +59,8 @@ import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
 
 public class Organizations {
+
+    private static final Logger logger = Logger.getLogger(Organizations.class);
 
     public static boolean isOrganizationGroup(GroupModel group) {
         return Type.ORGANIZATION.equals(group.getType()) && group.getOrganization() != null;
@@ -178,6 +181,24 @@ public class Organizations {
         verifier.verifierContext(verifierContext);
 
         return verifier.verify().getToken();
+    }
+
+    public static void assignInvitationGroups(RealmModel realm, UserModel user, InviteOrgActionToken token) {
+        List<String> groupIds = token.getGroupIds();
+        if (groupIds == null) {
+            return;
+        }
+        for (String groupId : groupIds) {
+            GroupModel group = realm.getGroupById(groupId);
+            if (group != null && group.getType() == GroupModel.Type.ORGANIZATION
+                    && group.getOrganization() != null
+                    && group.getOrganization().getId().equals(token.getOrgId())) {
+                user.joinGroup(group);
+            } else {
+                logger.warnf("Skipping invitation group assignment for user %s: group %s no longer exists or does not belong to organization %s",
+                        user.getId(), groupId, token.getOrgId());
+            }
+        }
     }
 
     public static String getEmailDomain(String email) {
